@@ -2,7 +2,6 @@ use crate::core::algorithm::generate_modulo_11_checksum;
 use rand::Rng;
 
 pub struct NhsNumber;
-pub struct ChiNumber;
 
 trait PatientIdentifier {
     fn generate(count: Option<usize>) -> Vec<String>;
@@ -17,11 +16,24 @@ impl PatientIdentifier for NhsNumber {
 
         let mut thr = rand::thread_rng();
         while result.len() < count {
-            // let mut chars: Vec<usize> = (0..9).map(|_| thr.gen_range(0..=9)).collect();
-            let mut chars: usize = thr.gen_range(100_000_0000..999_999_9999);
+            let mut chars: Vec<u32> = vec![];
+
+            chars.extend(
+                std::iter::once(thr.gen_range(1..=9))
+                    .chain(std::iter::repeat_with(|| thr.gen_range(0..=9)).take(8)),
+            );
+
             let checksum = generate_modulo_11_checksum(&chars);
 
-            chars.push(checksum);
+            if checksum == 10 {
+                break;
+            }
+
+            if checksum == 11 {
+                chars.push(0);
+            } else {
+                chars.push(checksum);
+            }
 
             let res: String = chars.iter().map(ToString::to_string).collect();
 
@@ -38,13 +50,16 @@ impl PatientIdentifier for NhsNumber {
 #[cfg(test)]
 #[test]
 fn validate_nhs_numbers() {
-    assert_eq!(NhsNumber::validate("9434765919".into()), true);
-    assert_eq!(NhsNumber::validate("4785027629".into()), true);
-    assert_eq!(NhsNumber::validate("12312".into()), false)
+    assert!(NhsNumber::validate(String::from("9434765919")));
+    assert!(NhsNumber::validate(String::from("341 728 4996")));
+    assert!(!NhsNumber::validate(String::from("12312")));
 }
 
 #[test]
 fn test_generate_nhs_numbers() {
-    dbg!(NhsNumber::generate(Some(10)));
-    assert!(false);
+    let nhs_numbers = NhsNumber::generate(Some(1000));
+
+    for number in nhs_numbers {
+        assert!(NhsNumber::validate(number));
+    }
 }
