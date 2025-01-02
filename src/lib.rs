@@ -1,1 +1,4 @@
-pub mod core;
+mod algorithm;
+mod errors;
+pub mod nhs;
+mod number;
